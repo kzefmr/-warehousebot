@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Привет, {{ user.full_name }}</h1>
+
+<div class="grid">
+  <a href="/select-warehouse" class="tile tile-primary">
+    <div class="tile-icon">📥</div>
+    <div class="tile-title">Взять со склада</div>
+    <div class="tile-desc">Выбрать склад и набрать материалы</div>
+  </a>
+  <a href="/backpack" class="tile">
+    <div class="tile-icon">🎒</div>
+    <div class="tile-title">Мой рюкзак</div>
+    <div class="tile-desc">Материалы и инструменты</div>
+  </a>
+  <a href="/tools" class="tile">
+    <div class="tile-icon">🔧</div>
+    <div class="tile-title">Инструменты</div>
+    <div class="tile-desc">Все инструменты и их местонахождение</div>
+  </a>
+
+  {% if user.role == 'admin' %}
+  <a href="/admin/stock" class="tile tile-admin">
+    <div class="tile-icon">🏢</div>
+    <div class="tile-title">Управление складом</div>
+    <div class="tile-desc">Приход · Выдача · Списание</div>
+  </a>
+  <a href="/reports" class="tile">
+    <div class="tile-icon">📊</div>
+    <div class="tile-title">Отчёты</div>
+    <div class="tile-desc">Остатки, рюкзаки, журналы</div>
+  </a>
+  <a href="/history" class="tile">
+    <div class="tile-icon">🕓</div>
+    <div class="tile-title">История</div>
+    <div class="tile-desc">Последние операции</div>
+  </a>
+  <a href="/catalog" class="tile">
+    <div class="tile-icon">📚</div>
+    <div class="tile-title">Каталог</div>
+    <div class="tile-desc">Позиции складов</div>
+  </a>
+  <a href="/locks" class="tile">
+    <div class="tile-icon">🔐</div>
+    <div class="tile-title">Шкафчики</div>
+    <div class="tile-desc">Учёт ключей</div>
+  </a>
+  <a href="/warehouses" class="tile">
+    <div class="tile-icon">🏬</div>
+    <div class="tile-title">Склады</div>
+    <div class="tile-desc">Адреса и помещения</div>
+  </a>
+  <a href="/cities" class="tile">
+    <div class="tile-icon">🌆</div>
+    <div class="tile-title">Города</div>
+    <div class="tile-desc">Справочник городов</div>
+  </a>
+  <a href="/users" class="tile">
+    <div class="tile-icon">👥</div>
+    <div class="tile-title">Пользователи</div>
+    <div class="tile-desc">Доступ и города</div>
+  </a>
+  <a href="/settings" class="tile">
+    <div class="tile-icon">⚙️</div>
+    <div class="tile-title">Настройки</div>
+    <div class="tile-desc">Отображение интерфейса</div>
+  </a>
+  {% endif %}
+</div>
+
+{% endblock %}

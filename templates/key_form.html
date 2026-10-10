@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block title %}Ключ {{ key.slot_code }}{% endblock %}
+{% block content %}
+
+<div class="row row-between">
+  <h1>🔑 Гнездо {{ key.slot_code }}</h1>
+  <a href="/admin/locks/{{ lock.id }}/keys" class="btn">← К сетке</a>
+</div>
+
+<div class="card card-narrow">
+  {% if error %}<div class="alert alert-error">{{ error }}</div>{% endif %}
+
+  <form method="post" action="/admin/locks/{{ lock.id }}/keys/{{ key.slot_code }}/edit">
+    <label>Название ключа
+      <input type="text" name="name" value="{{ key.name or '' }}" autofocus placeholder="Например: От склада">
+    </label>
+    <label>Описание (необязательно)
+      <input type="text" name="description" value="{{ key.description or '' }}" placeholder="Комментарий">
+    </label>
+
+    <div class="row">
+      <button type="submit" class="btn btn-primary">Сохранить</button>
+      <a href="/admin/locks/{{ lock.id }}/keys" class="btn">Отмена</a>
+    </div>
+  </form>
+
+  {% if key.resistance_adc is not none %}
+  <div style="margin-top:16px; padding-top:16px; border-top:1px solid #e5e7eb;">
+    <p class="muted small">
+      <b>Откалибровано:</b> ADC = {{ key.resistance_adc }}
+      {% if key.resistance_ohm %} · {{ key.resistance_ohm }} Ом{% endif %}
+    </p>
+    <p class="muted small">
+      <b>Состояние:</b>
+      {% if key.is_present %}🟢 На месте{% else %}🔴 Отсутствует{% endif %}
+      {% if key.current_adc %} · сейчас ADC = {{ key.current_adc }}{% endif %}
+    </p>
+    <form method="post" action="/admin/locks/{{ lock.id }}/keys/{{ key.slot_code }}/clear"
+          onsubmit="return confirm('Сбросить калибровку и название этого гнезда?');"
+          style="margin-top:10px;">
+      <button class="btn btn-danger btn-sm">Сбросить калибровку</button>
+    </form>
+  </div>
+  {% endif %}
+</div>
+
+{% endblock %}

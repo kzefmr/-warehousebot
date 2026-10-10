@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <title>{% block title %}Склад{% endblock %}</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<header>
+  <div class="container header-inner">
+    <a href="/" class="logo">📦 Склад</a>
+    {% if user %}
+      <nav>
+        <a href="/backpack" class="nav-icon" title="Мой рюкзак">
+          🎒<span class="badge-nav" id="nav-backpack-badge"></span>
+        </a>
+
+        <a href="/tools" title="Инструменты">🔧 Инструменты</a>
+
+        {% if user.role == 'admin' %}
+          <a href="/admin/stock" title="Управление складом">🏢 Склад</a>
+          <a href="/reports" title="Отчёты">📊 Отчёты</a>
+          <a href="/catalog" title="Каталог">📚 Каталог</a>
+
+          <div class="nav-dropdown">
+            <button type="button" class="nav-dropdown-btn" id="nav-more-btn">⋯ Ещё</button>
+            <div class="nav-dropdown-menu" id="nav-more-menu" style="display:none;">
+              <a href="/history">🕓 История операций</a>
+              <a href="/catalog/import">📥 Импорт из Excel</a>
+              <hr>
+              <a href="/locks">🔐 Шкафчики с ключами</a>
+              <a href="/warehouses">🏬 Склады</a>
+              <a href="/cities">🌆 Города</a>
+              <hr>
+              <a href="/admin/backups">💾 Резервные копии</a>
+              <a href="/users">👥 Пользователи</a>
+              <a href="/settings">⚙️ Настройки</a>
+              <hr>
+              <a href="/reset" class="nav-danger">⚠️ Сброс операций</a>
+            </div>
+          </div>
+        {% endif %}
+
+        <a href="/logout" class="logout" title="Выйти">Выйти</a>
+      </nav>
+    {% endif %}
+  </div>
+</header>
+<main class="container">
+  {% block content %}{% endblock %}
+</main>
+
+<script>
+  (function () {
+    const btn = document.getElementById("nav-more-btn");
+    const menu = document.getElementById("nav-more-menu");
+    if (!btn || !menu) return;
+
+    btn.addEventListener("click", function (e) {
+      e.stopPropagation();
+      menu.style.display = (menu.style.display === "none") ? "block" : "none";
+    });
+
+    document.addEventListener("click", function (e) {
+      if (!menu.contains(e.target) && e.target !== btn) {
+        menu.style.display = "none";
+      }
+    });
+
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "Escape") menu.style.display = "none";
+    });
+  })();
+</script>
+
+{% block scripts %}{% endblock %}
+</body>
+</html>

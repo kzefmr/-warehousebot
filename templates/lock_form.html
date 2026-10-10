@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>{{ 'Редактировать шкафчик' if edit_lock else 'Новый шкафчик' }}</h1>
+
+<div class="card card-narrow">
+  {% if error %}<div class="alert alert-error">{{ error }}</div>{% endif %}
+  <form method="post" action="{{ ('/locks/' ~ edit_lock.id ~ '/edit') if edit_lock else '/locks/new' }}">
+    <label>Склад
+      <select name="warehouse_id" required>
+        {% for w in warehouses %}
+          <option value="{{ w.id }}" {{ 'selected' if edit_lock and edit_lock.warehouse_id == w.id else '' }}>{{ w.city_name }} · {{ w.name }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>Название шкафчика
+      <input type="text" name="name" required value="{{ edit_lock.name if edit_lock else '' }}">
+    </label>
+    <label>Внутренний код замка
+      <input type="text" name="arduino_id" required value="{{ edit_lock.arduino_id if edit_lock else '' }}" placeholder="Например: 1">
+    </label>
+
+    {% if edit_lock %}
+    <hr style="margin:20px 0; border:none; border-top:1px solid #e5e7eb;">
+    <h2>Тайминги</h2>
+    <p class="muted small">Оставьте пустым, чтобы использовать общие значения из /settings.</p>
+
+    <label>Максимальное удержание реле (мс)
+      <input type="number" name="relay_max_ms" min="500" max="30000"
+             value="{{ edit_lock.relay_max_ms if edit_lock.relay_max_ms else '' }}"
+             placeholder="7000">
+    </label>
+    <label>Минимальное удержание реле (мс)
+      <input type="number" name="relay_min_ms" min="500" max="30000"
+             value="{{ edit_lock.relay_min_ms if edit_lock.relay_min_ms else '' }}"
+             placeholder="3000">
+    </label>
+    <label>Антидребезг геркона (мс)
+      <input type="number" name="debounce_ms" min="50" max="5000"
+             value="{{ edit_lock.debounce_ms if edit_lock.debounce_ms else '' }}"
+             placeholder="500">
+    </label>
+    <label>Пауза между открытиями (сек)
+      <input type="number" name="cooldown_sec" min="5" max="3600"
+             value="{{ edit_lock.cooldown_sec if edit_lock.cooldown_sec else '' }}"
+             placeholder="30">
+    </label>
+    {% endif %}
+
+    <div class="row" style="margin-top:16px;">
+      <button type="submit" class="btn btn-primary">Сохранить</button>
+      <a href="/locks" class="btn">Отмена</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

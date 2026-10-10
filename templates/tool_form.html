@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>{{ 'Редактировать инструмент' if edit_tool else 'Новый инструмент' }}</h1>
+
+<div class="card card-narrow">
+  {% if error %}<div class="alert alert-error">{{ error }}</div>{% endif %}
+  <form method="post" action="{{ ('/admin/tools/' ~ edit_tool.id ~ '/edit') if edit_tool else '/admin/tools/new' }}">
+    <label>Город
+      <select name="city_id" required onchange="updateInvNo()">
+        {% for c in cities %}
+          <option value="{{ c.id }}"
+            {{ 'selected' if (edit_tool and edit_tool.city_id == c.id) or (not edit_tool and preselected_city == c.id) else '' }}>
+            {{ c.name }}
+          </option>
+        {% endfor %}
+      </select>
+    </label>
+
+    <label>Склад
+      <select name="warehouse_id" required>
+        {% for w in warehouses %}
+          <option value="{{ w.id }}"
+            {{ 'selected' if edit_tool and edit_tool.warehouse_id == w.id else '' }}>
+            {{ w.city_name }} · {{ w.name }}
+          </option>
+        {% endfor %}
+      </select>
+    </label>
+
+    <label>Наименование
+      <input type="text" name="name" id="tool-name" required
+             value="{{ edit_tool.name if edit_tool else '' }}"
+             oninput="updateInvNo()">
+    </label>
+
+    <label>Инвентарный номер
+      <input type="text" name="inventory_no" id="tool-inv"
+             value="{{ edit_tool.inventory_no if edit_tool else '' }}"
+             placeholder="оставьте пустым — сгенерируется">
+    </label>
+
+    <label>Серийный номер (необязательно)
+      <input type="text" name="serial_no" value="{{ edit_tool.serial_no if edit_tool else '' }}">
+    </label>
+
+    <label>Примечание (необязательно)
+      <input type="text" name="note" value="{{ edit_tool.note if edit_tool else '' }}">
+    </label>
+
+    <div class="row">
+      <button type="submit" class="btn btn-primary">Сохранить</button>
+      <a href="{{ ('/tools/' ~ edit_tool.id) if edit_tool else '/tools' }}" class="btn">Отмена</a>
+    </div>
+  </form>
+
+  <p class="muted small" style="margin-top:12px;">
+    Если инвентарный номер пуст — он сгенерируется автоматически
+    по шаблону «ПервоеСловоНаименования N». N — следующий свободный номер в городе.
+  </p>
+</div>
+
+<script>
+  function updateInvNo() {
+    var name = document.getElementById('tool-name').value.trim();
+    var inv = document.getElementById('tool-inv');
+    var isEdit = {{ 'true' if edit_tool else 'false' }};
+    if (!name || isEdit) return;
+    var first = name.split(' ')[0];
+    inv.placeholder = first + ' ?';
+  }
+</script>
+{% endblock %}

@@ -1,0 +1,140 @@
+{% extends "base.html" %}
+{% block title %}Управление складом{% endblock %}
+{% block content %}
+
+<h1>🏢 Управление складом</h1>
+
+<form method="get" action="/admin/stock" class="search-form">
+  <select name="warehouse_id" onchange="this.form.submit()">
+    {% for w in warehouses %}
+      <option value="{{ w.id }}" {{ 'selected' if warehouse and warehouse.id == w.id else '' }}>
+        {{ w.city_name }} · {{ w.name }}
+      </option>
+    {% endfor %}
+  </select>
+  <input type="text" name="q" value="{{ query }}" placeholder="Поиск: артикул, название, B2B/B2C..." autocomplete="off">
+  <button type="submit" class="btn">Найти</button>
+  <button type="button" class="btn qr-btn" id="qr-btn" title="Сканировать QR">📷</button>
+  <a href="/admin/inventory?warehouse_id={{ warehouse.id if warehouse else 0 }}" class="btn">📋 Инвентаризация</a>
+</form>
+
+{% if not warehouse %}
+  <div class="alert">Сначала создайте склад в разделе «Склады».</div>
+{% elif not items %}
+  <div class="alert">Позиций нет. Загрузите каталог или добавьте вручную.</div>
+{% else %}
+
+<div class="admin-list">
+  {% for it in items %}
+  <div class="admin-item" data-catalog-id="{{ it.id }}">
+    <div class="admin-item-info">
+      <div class="item-name">{{ it.short_name or it.name }}</div>
+      {% if it.short_name %}<div class="item-full">{{ it.name }}</div>{% endif %}
+      <div class="item-meta">
+        {% if it.article %}<span class="tag">{{ it.article }}</span>{% endif %}
+        {% if it.segment %}<span class="tag tag-seg">{{ it.segment }}</span>{% endif %}
+        {% if it.applicability %}<span class="tag tag-app">{{ it.applicability }}</span>{% endif %}
+        {% if it.location_name %}<span class="tag">📍{{ it.location_name }}</span>{% endif %}
+      </div>
+      <div class="admin-item-stock">
+        На складе:
+        <b class="{{ 'stock-negative' if stock.get(it.id, 0) < 0 else '' }}">
+          {{ stock.get(it.id, 0) | int }}
+        </b>
+        {{ it.unit }}
+      </div>
+    </div>
+
+    <div class="admin-item-actions admin-item-actions-3">
+      <button type="button" class="admin-btn"
+              data-op="income" data-catalog-id="{{ it.id }}"
+              data-name="{{ it.short_name or it.name }}"
+              data-unit="{{ it.unit }}"
+              data-stock="{{ stock.get(it.id, 0) | int }}">➕ Приход</button>
+      <button type="button" class="admin-btn"
+              data-op="issue" data-catalog-id="{{ it.id }}"
+              data-name="{{ it.short_name or it.name }}"
+              data-unit="{{ it.unit }}"
+              data-stock="{{ stock.get(it.id, 0) | int }}">📤 Выдать</button>
+      <button type="button" class="admin-btn admin-btn-danger"
+              data-op="writeoff" data-catalog-id="{{ it.id }}"
+              data-name="{{ it.short_name or it.name }}"
+              data-unit="{{ it.unit }}"
+              data-stock="{{ stock.get(it.id, 0) | int }}">🗑 Списать</button>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+{% endif %}
+
+<!-- МОДАЛЬНОЕ ОКНО -->
+<div id="modal-overlay" class="modal-overlay" style="display:none;">
+  <div class="modal">
+    <div class="modal-head">
+      <div id="modal-title">Операция</div>
+      <button type="button" class="modal-close" id="modal-close">✕</button>
+    </div>
+    <form method="post" id="modal-form" action="">
+      <input type="hidden" name="catalog_id" id="modal-catalog-id">
+      <input type="hidden" name="warehouse_id" value="{{ warehouse.id if warehouse else 0 }}">
+
+      <div class="modal-item" id="modal-item-name"></div>
+      <div class="modal-stock" id="modal-stock-info"></div>
+
+      <div id="modal-user-field" style="display:none;">
+        <label id="modal-user-label">Сотрудник
+          <select name="to_user_id" id="modal-user-select">
+            <option value="">— выбери сотрудника —</option>
+            {% for u in all_users %}
+              {% if u.is_active %}
+              <option value="{{ u.id }}">{{ u.full_name }}</option>
+              {% endif %}
+            {% endfor %}
+          </select>
+        </label>
+      </div>
+
+      <label>Количество
+        <input type="text" name="quantity" id="modal-quantity" inputmode="numeric" pattern="[0-9]*" autocomplete="off" required>
+      </label>
+
+      <div class="quick-buttons">
+        <button type="button" class="chip" data-qty="1">1</button>
+        <button type="button" class="chip" data-qty="5">5</button>
+        <button type="button" class="chip" data-qty="10">10</button>
+        <button type="button" class="chip" data-qty="50">50</button>
+        <button type="button" class="chip" data-qty="100">100</button>
+      </div>
+
+      <label>Комментарий (необязательно)
+        <input type="text" name="note" id="modal-note" placeholder="Причина, объект, детали">
+      </label>
+
+      <div class="modal-actions">
+        <button type="submit" class="btn btn-primary">Записать</button>
+        <button type="button" class="btn" id="modal-cancel">Отмена</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+  window.OP_CONFIG = {
+    income:   { title: "➕ Приход",   action: "/admin/stock/income",   user: false, userLabel: "", showStock: false },
+    issue:    { title: "📤 Выдать",   action: "/admin/stock/issue",    user: true,  userLabel: "Кому выдать", userFieldName: "to_user_id", showStock: true },
+    writeoff: { title: "🗑 Списать",  action: "/admin/stock/writeoff", user: false, userLabel: "", showStock: true }
+  };
+</script>
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<script src="/static/scanner.js"></script>
+<script src="/static/admin.js"></script>
+<script>
+  document.getElementById("qr-btn").addEventListener("click", function () {
+    window.openQrScanner("admin");
+  });
+</script>
+{% endblock %}

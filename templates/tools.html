@@ -1,0 +1,108 @@
+{% extends "base.html" %}
+{% block title %}Инструменты{% endblock %}
+{% block content %}
+
+<div class="row row-between">
+  <h1>🔧 Инструменты</h1>
+  <div class="row">
+    {% if user.role == 'admin' %}
+      <a href="/admin/tools/new" class="btn btn-primary">+ Добавить</a>
+    {% endif %}
+  </div>
+</div>
+
+<form method="get" action="/tools" class="search-form">
+  <input type="text" name="q" id="search-input" value="{{ request.query_params.get('q','') }}" placeholder="Поиск по названию или номеру..." autocomplete="off">
+  <button type="submit" class="btn">Найти</button>
+  <button type="button" class="btn qr-btn" id="qr-btn" title="Сканировать QR">📷</button>
+
+  <select name="status" onchange="this.form.submit()">
+    <option value="">— Все статусы —</option>
+    <option value="stock"          {{ 'selected' if status == 'stock'          else '' }}>🔒 На складе</option>
+    <option value="taken"          {{ 'selected' if status == 'taken'          else '' }}>🔓 У сотрудника</option>
+    <option value="repair"         {{ 'selected' if status == 'repair'         else '' }}>🔧 В ремонте</option>
+    <option value="lost"           {{ 'selected' if status == 'lost'           else '' }}>❌ Потерян</option>
+    <option value="decommissioned" {{ 'selected' if status == 'decommissioned' else '' }}>🗑 Списан</option>
+  </select>
+</form>
+
+{% if not tools %}
+  <div class="alert">Инструментов нет.</div>
+{% else %}
+
+{% if user.role == 'admin' %}
+<form method="get" action="/tools/print-labels" id="labels-form">
+  <div class="row" style="margin-bottom:10px;">
+    <button type="button" class="btn btn-sm" id="select-all-btn">Выбрать все</button>
+    <button type="button" class="btn btn-sm" id="select-none-btn">Снять все</button>
+    <button type="submit" class="btn btn-sm btn-primary">🖨️ Печать выбранных</button>
+  </div>
+{% endif %}
+
+<div class="list">
+  {% for t in tools %}
+  <div class="list-item-static tool-card" data-tool-id="{{ t.id }}">
+    <div class="tool-main">
+      {% if user.role == 'admin' %}
+        <input type="checkbox" class="label-checkbox" name="ids" value="{{ t.id }}" style="transform:scale(1.4); margin-right:8px;">
+      {% endif %}
+
+      {% if t.photo %}
+        <img src="/uploads/tools/{{ t.photo }}" alt="" class="tool-thumb">
+      {% else %}
+        <div class="tool-thumb tool-thumb-placeholder">🔧</div>
+      {% endif %}
+
+      <div class="tool-info">
+        <div class="list-item-title">{{ t.inventory_no }}</div>
+        <div class="list-item-sub">{{ t.name }}</div>
+        {% if t.serial_no %}<div class="list-item-sub muted">S/N: {{ t.serial_no }}</div>{% endif %}
+        <div class="list-item-sub">
+          {% if t.status == 'stock' %}🔒 На складе · {{ t.warehouse_name or '—' }}
+          {% elif t.status == 'taken' %}🔓 У <b>{{ t.holder_name or '—' }}</b>
+          {% elif t.status == 'repair' %}🔧 В ремонте
+          {% elif t.status == 'lost' %}❌ Потерян
+          {% elif t.status == 'decommissioned' %}🗑 Списан
+          {% endif %}
+        </div>
+      </div>
+    </div>
+    <div class="tool-actions">
+      <a href="/tools/{{ t.id }}" class="btn btn-sm btn-primary">Подробнее</a>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+{% if user.role == 'admin' %}
+  </form>
+{% endif %}
+
+{% endif %}
+
+{% endblock %}
+
+{% block scripts %}
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<script src="/static/scanner.js"></script>
+<script>
+  document.getElementById("qr-btn").addEventListener("click", function () {
+    window.openQrScanner("tools");
+  });
+
+  {% if user.role == 'admin' %}
+  var selAll = document.getElementById("select-all-btn");
+  var selNone = document.getElementById("select-none-btn");
+  if (selAll) {
+    selAll.addEventListener("click", function () {
+      document.querySelectorAll(".label-checkbox").forEach(function (cb) { cb.checked = true; });
+    });
+  }
+  if (selNone) {
+    selNone.addEventListener("click", function () {
+      document.querySelectorAll(".label-checkbox").forEach(function (cb) { cb.checked = false; });
+    });
+  }
+  {% endif %}
+</script>
+{% endblock %}

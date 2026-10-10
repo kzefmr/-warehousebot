@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+{% block title %}{{ warehouse.name }}{% endblock %}
+{% block content %}
+
+<div class="take-header">
+  <div>
+    <div class="take-title">{{ warehouse.name }}</div>
+    <div class="take-sub">{{ warehouse.city_name }}{% if warehouse.address %} · {{ warehouse.address }}{% endif %}{% if warehouse.room %} · пом. {{ warehouse.room }}{% endif %}</div>
+  </div>
+  <a href="/select-warehouse" class="btn btn-sm">Сменить</a>
+</div>
+
+<div class="search-bar">
+  <input type="text" id="search-input" placeholder="🔍 Поиск или сканируйте QR" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+  <button type="button" class="btn btn-sm qr-btn" id="qr-btn" title="Сканировать QR">📷</button>
+  <button type="button" id="clear-btn" class="btn btn-sm" style="display:none;">✕</button>
+</div>
+
+<div id="empty-state" class="empty-state" style="display:none;">
+  <div class="empty-icon">🔎</div>
+  <div>Ничего не найдено</div>
+</div>
+
+<div class="items-list" id="items-list">
+  {% for it in items %}
+  <div class="item-card"
+       data-id="{{ it.id }}"
+       data-search="{{ (it.article ~ ' ' ~ it.name ~ ' ' ~ (it.short_name or '') ~ ' ' ~ (it.segment or '') ~ ' ' ~ (it.applicability or '') ~ ' ' ~ (it.location_name or '')) | lower }}"
+       data-fav="{{ '1' if it.id in favorites else '0' }}">
+
+    <div class="item-main">
+      <div class="item-name">{{ it.short_name or it.name }}</div>
+      {% if it.short_name %}<div class="item-full">{{ it.name }}</div>{% endif %}
+      <div class="item-meta">
+        {% if it.article %}<span class="tag">{{ it.article }}</span>{% endif %}
+        {% if it.segment %}<span class="tag tag-seg">{{ it.segment }}</span>{% endif %}
+        {% if it.applicability %}<span class="tag tag-app">{{ it.applicability }}</span>{% endif %}
+        {% if it.location_name %}<span class="tag">📍{{ it.location_name }}</span>{% endif %}
+      </div>
+      {% if show_stock or backpack_stock.get(it.id) %}
+      <div class="item-stock">
+        {% if show_stock %}
+          <span class="stock-on">На складе: {{ stock.get(it.id, 0) | int }} {{ it.unit }}</span>
+        {% endif %}
+        {% if backpack_stock.get(it.id) %}
+          <span class="stock-mine">· У меня: {{ backpack_stock.get(it.id) | int }}</span>
+        {% endif %}
+      </div>
+      {% endif %}
+    </div>
+
+    <div class="item-actions">
+      {% if show_favorites %}
+      <button type="button" class="fav-btn {{ 'active' if it.id in favorites else '' }}"
+              data-id="{{ it.id }}" title="Избранное">★</button>
+      {% endif %}
+      <div class="qty-control">
+        <button type="button" class="qty-btn qty-minus" data-id="{{ it.id }}">−</button>
+        <input type="text" class="qty-input" data-id="{{ it.id }}" value="" inputmode="numeric" pattern="[0-9]*">
+        <button type="button" class="qty-btn qty-plus" data-id="{{ it.id }}">+</button>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+<div id="cart-bar" class="cart-bar" style="display:none;">
+  <div class="cart-info">
+    <span class="cart-count" id="cart-count">0</span>
+    <span class="cart-label">позиций</span>
+  </div>
+  <form method="post" action="/take/submit" id="cart-form" style="margin:0;">
+    <input type="hidden" name="warehouse_id" value="{{ warehouse.id }}">
+    <input type="hidden" name="cart" id="cart-data" value="">
+    <button type="submit" class="btn btn-primary btn-lg">Записать</button>
+  </form>
+</div>
+
+<div id="cart-clear-wrap" class="cart-clear-wrap" style="display:none;">
+  <button type="button" id="cart-clear" class="btn btn-sm">Очистить корзину</button>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>window.WAREHOUSE_ID = {{ warehouse.id }};</script>
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<script src="/static/scanner.js"></script>
+<script src="/static/app.js"></script>
+<script>
+  document.getElementById("qr-btn").addEventListener("click", function () {
+    window.openQrScanner("search");
+  });
+</script>
+{% endblock %}

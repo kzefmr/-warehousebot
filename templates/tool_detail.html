@@ -1,0 +1,130 @@
+{% extends "base.html" %}
+{% block title %}{{ tool.inventory_no }}{% endblock %}
+{% block content %}
+
+<div class="row row-between">
+  <h1>🔧 {{ tool.inventory_no }}</h1>
+  <a href="/tools" class="btn">← К списку</a>
+</div>
+
+{% if request.query_params.get('taken') %}<div class="alert">✅ Инструмент взят</div>{% endif %}
+{% if request.query_params.get('returned') %}<div class="alert">✅ Инструмент возвращён</div>{% endif %}
+{% if request.query_params.get('repair') %}<div class="alert">🔧 Отправлен в ремонт</div>{% endif %}
+{% if request.query_params.get('lost') %}<div class="alert alert-error">❌ Помечен как потерянный</div>{% endif %}
+{% if request.query_params.get('decommissioned') %}<div class="alert">🗑 Списан</div>{% endif %}
+{% if request.query_params.get('given') %}<div class="alert">📤 Передан другому сотруднику</div>{% endif %}
+{% if request.query_params.get('photo') %}<div class="alert">✅ Фото обновлено</div>{% endif %}
+
+<div class="card">
+  <div class="tool-detail">
+    <div>
+      {% if tool.photo %}
+        <img src="/uploads/tools/{{ tool.photo }}" alt="" class="tool-photo">
+      {% else %}
+        <div class="tool-photo tool-thumb-placeholder">🔧</div>
+      {% endif %}
+
+      {% if user.role == 'admin' %}
+      <form method="post" action="/admin/tools/{{ tool.id }}/photo" enctype="multipart/form-data" style="margin-top:10px;">
+        <label>Обновить фото
+          <input type="file" name="file" accept="image/*" required>
+        </label>
+        <button class="btn btn-sm" type="submit">Загрузить</button>
+      </form>
+      {% endif %}
+    </div>
+
+    <div class="tool-detail-info">
+      <h2>{{ tool.name }}</h2>
+      <table class="table" style="margin-top:10px;">
+        <tr><th>Инв. номер</th><td><b>{{ tool.inventory_no }}</b></td></tr>
+        {% if tool.serial_no %}<tr><th>Серийный</th><td>{{ tool.serial_no }}</td></tr>{% endif %}
+        <tr><th>Город</th><td>{{ tool.city_name or '—' }}</td></tr>
+        <tr><th>Склад</th><td>{{ tool.warehouse_name or '—' }}</td></tr>
+        <tr><th>Статус</th><td>
+          {% if tool.status == 'stock' %}🔒 На складе
+          {% elif tool.status == 'taken' %}🔓 У <b>{{ tool.holder_name or '—' }}</b>
+          {% elif tool.status == 'repair' %}🔧 В ремонте
+          {% elif tool.status == 'lost' %}❌ Потерян
+          {% elif tool.status == 'decommissioned' %}🗑 Списан
+          {% endif %}
+        </td></tr>
+        {% if tool.taken_at %}<tr><th>Взят</th><td>{{ tool.taken_at }}</td></tr>{% endif %}
+        {% if tool.note %}<tr><th>Примечание</th><td>{{ tool.note }}</td></tr>{% endif %}
+      </table>
+
+      <div class="row" style="margin-top:16px; flex-wrap:wrap;">
+        {% if tool.status == 'stock' %}
+          <form method="post" action="/tools/{{ tool.id }}/take" style="margin:0;">
+            <button class="btn btn-primary btn-lg">📤 Взять</button>
+          </form>
+        {% elif tool.status == 'taken' %}
+          {% if tool.holder_id == user.id %}
+            <form method="post" action="/tools/{{ tool.id }}/return" style="margin:0;">
+              <button class="btn btn-primary btn-lg">↩️ Вернуть</button>
+            </form>
+            <a href="/tools/{{ tool.id }}/give" class="btn btn-lg">📦 Передать</a>
+          {% elif user.role == 'admin' %}
+            <form method="post" action="/tools/{{ tool.id }}/return" style="margin:0;">
+              <button class="btn btn-primary">↩️ Забрать у сотрудника</button>
+            </form>
+          {% endif %}
+        {% endif %}
+
+        {% if tool.status in ('stock', 'taken') %}
+          <form method="post" action="/tools/{{ tool.id }}/repair" style="margin:0;">
+            <button class="btn">🔧 В ремонт</button>
+          </form>
+        {% endif %}
+
+        {% if user.role == 'admin' %}
+          {% if tool.status not in ('lost', 'decommissioned') %}
+          <form method="post" action="/tools/{{ tool.id }}/lost" style="margin:0;" onsubmit="return confirm('Пометить как потерянный?');">
+            <button class="btn btn-danger">❌ Потерян</button>
+          </form>
+          <form method="post" action="/tools/{{ tool.id }}/decommission" style="margin:0;" onsubmit="return confirm('Списать инструмент?');">
+            <button class="btn btn-danger">🗑 Списать</button>
+          </form>
+          {% endif %}
+          <a href="/admin/tools/{{ tool.id }}/edit" class="btn">✏️ Изменить</a>
+          <form method="post" action="/admin/tools/{{ tool.id }}/delete" style="margin:0;" onsubmit="return confirm('Удалить инструмент НАВСЕГДА?');">
+            <button class="btn btn-danger">🗑 Удалить</button>
+          </form>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <h2>История</h2>
+  {% if not log %}
+    <p class="muted">Пока нет событий.</p>
+  {% else %}
+  <div class="list">
+    {% for e in log %}
+    <div class="list-item-static">
+      <div>
+        <div class="list-item-title">
+          {% if e.event_type == 'created' %}➕ Добавлен
+          {% elif e.event_type == 'take' %}📤 Взял
+          {% elif e.event_type == 'return' %}↩️ Вернул
+          {% elif e.event_type == 'repair' %}🔧 В ремонт
+          {% elif e.event_type == 'transfer' %}📦 Передан
+          {% elif e.event_type == 'lost' %}❌ Потерян
+          {% elif e.event_type == 'decommissioned' %}🗑 Списан
+          {% else %}{{ e.event_type }}{% endif %}
+        </div>
+        <div class="list-item-sub">
+          {{ e.created_at }}
+          {% if e.full_name %} · {{ e.full_name }}{% endif %}
+        </div>
+        {% if e.note %}<div class="list-item-sub muted">{{ e.note }}</div>{% endif %}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+</div>
+
+{% endblock %}

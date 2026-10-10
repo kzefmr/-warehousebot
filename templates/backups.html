@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="row row-between">
+  <h1>💾 Резервные копии</h1>
+  <div class="row">
+    <form method="post" action="/admin/backups/now" style="margin:0;">
+      <button class="btn btn-primary">Сделать копию сейчас</button>
+    </form>
+    <a href="/settings" class="btn">← Настройки</a>
+  </div>
+</div>
+
+{% if request.query_params.get('done') %}
+  <div class="alert">✅ Копия создана.</div>
+{% endif %}
+
+<div class="card">
+  <p class="muted" style="margin:0;">
+    Копии создаются автоматически раз в день. Хранятся последние <b>{{ keep_count }}</b>.
+    Старые удаляются. Скачайте копию для хранения вне сервера.
+  </p>
+</div>
+
+{% if not backups %}
+  <div class="alert">Копий пока нет.</div>
+{% else %}
+<div class="list">
+  {% for b in backups %}
+  <div class="list-item-static">
+    <div>
+      <div class="list-item-title">
+        📄 {{ b.filename }}
+      </div>
+      <div class="list-item-sub">
+        {{ b.mtime.strftime("%d.%m.%Y %H:%M") }}
+        · {{ (b.size / 1024) | round(1) }} КБ
+      </div>
+    </div>
+    <div class="row" style="flex-direction:column; align-items:stretch; gap:4px;">
+      <a href="/admin/backups/{{ b.filename }}" class="btn btn-sm btn-primary">⬇️ Скачать</a>
+      <form method="post" action="/admin/backups/{{ b.filename }}/delete" onsubmit="return confirm('Удалить эту копию?');" style="margin:0;">
+        <button class="btn btn-sm btn-danger" style="width:100%;">Удалить</button>
+      </form>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+<div class="card" style="margin-top:20px; background:#f9fafb;">
+  <h2>Как восстановить из копии</h2>
+  <ol style="margin:0; padding-left:20px; line-height:1.8;">
+    <li>Скачайте нужную копию (кнопка <b>«Скачать»</b>).</li>
+    <li>Откройте файловый менеджер Amvera и удалите (или переименуйте) текущий файл <code>/data/warehouse.db</code>.</li>
+    <li>Загрузите скачанный файл в <code>/data/</code> и переименуйте его в <code>warehouse.db</code>.</li>
+    <li>Пересоберите проект в Amvera (или дождитесь перезапуска).</li>
+  </ol>
+  <p class="muted" style="margin-top:12px; font-size:13px;">
+    ⚠️ Восстановление через интерфейс пока не реализовано — только через файловый менеджер Amvera.
+  </p>
+</div>
+
+{% endblock %}

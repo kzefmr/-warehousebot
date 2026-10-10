@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="row row-between">
+  <h1>📚 Каталог</h1>
+  <div class="row">
+    <a href="/catalog/new?warehouse_id={{ selected_warehouse }}" class="btn btn-primary">+ Вручную</a>
+    <a href="/catalog/import" class="btn">📥 Импорт</a>
+    <a href="#" class="btn" id="print-labels-btn">🖨️ Печать этикеток</a>
+  </div>
+</div>
+
+<form method="get" action="/catalog" class="search-form">
+  <select name="warehouse_id" onchange="this.form.submit()">
+    <option value="">— все склады —</option>
+    {% for w in warehouses %}
+      <option value="{{ w.id }}" {{ 'selected' if selected_warehouse == w.id else '' }}>{{ w.city_name }} · {{ w.name }}</option>
+    {% endfor %}
+  </select>
+</form>
+
+<p class="muted">Всего позиций: <b>{{ count }}</b>. ID позиции — это её QR-код.</p>
+
+{% if not items %}
+  <div class="alert">Позиций нет. Импортируйте Excel или добавьте вручную.</div>
+{% else %}
+
+<form method="get" action="/catalog/print-labels" id="labels-form">
+  {% if selected_warehouse %}<input type="hidden" name="warehouse_id" value="{{ selected_warehouse }}">{% endif %}
+
+  <div class="row" style="margin-bottom:8px;">
+    <button type="button" class="btn btn-sm" id="select-all-btn">Выбрать все</button>
+    <button type="button" class="btn btn-sm" id="select-none-btn">Снять все</button>
+  </div>
+
+  <div class="list">
+    {% for it in items %}
+    <div class="list-item-static">
+      <div style="display:flex; gap:10px; align-items:flex-start;">
+        <input type="checkbox" class="label-checkbox" name="ids" value="{{ it.id }}" style="margin-top:6px; transform:scale(1.4);">
+        <div>
+          <div class="list-item-title">
+            <span class="sort-badge">#{{ it.id }}</span>
+            {{ it.short_name or it.name }}
+          </div>
+          {% if it.short_name %}<div class="list-item-sub">{{ it.name }}</div>{% endif %}
+          <div class="list-item-sub">
+            {% if it.article %}{{ it.article }}{% endif %}
+            {% if it.segment %} · {{ it.segment }}{% endif %}
+            {% if it.applicability %} · {{ it.applicability }}{% endif %}
+            {% if it.unit %} · {{ it.unit }}{% endif %}
+          </div>
+          <div class="list-item-sub muted">
+            {{ it.warehouse_name or '—' }}{% if it.location_name %} · 📍{{ it.location_name }}{% endif %}
+          </div>
+          <form method="post" action="/catalog/{{ it.id }}/sort" class="row" style="margin-top:6px; gap:4px;">
+            <input type="hidden" name="warehouse_id" value="{{ selected_warehouse }}">
+            <input type="number" name="sort_order" value="{{ it.sort_order if it.sort_order else 1000 }}" style="width:80px; padding:4px 6px; font-size:13px;">
+            <button class="btn btn-sm" type="submit">Порядок</button>
+          </form>
+        </div>
+      </div>
+      <div class="row" style="flex-direction:column; align-items:stretch; gap:4px;">
+        <a href="/catalog/{{ it.id }}/edit" class="btn btn-sm">Изменить</a>
+        <form method="post" action="/catalog/{{ it.id }}/delete" onsubmit="return confirm('Удалить позицию?');" style="margin:0;">
+          <button class="btn btn-sm btn-danger" style="width:100%;">Удалить</button>
+        </form>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</form>
+{% endif %}
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+  const labelsForm = document.getElementById("labels-form");
+  const printBtn = document.getElementById("print-labels-btn");
+
+  document.getElementById("select-all-btn").addEventListener("click", function () {
+    document.querySelectorAll(".label-checkbox").forEach(function (cb) { cb.checked = true; });
+  });
+  document.getElementById("select-none-btn").addEventListener("click", function () {
+    document.querySelectorAll(".label-checkbox").forEach(function (cb) { cb.checked = false; });
+  });
+
+  printBtn.addEventListener("click", function (e) {
+    e.preventDefault();
+    const checked = document.querySelectorAll(".label-checkbox:checked");
+    if (checked.length === 0) {
+      if (!confirm("Ничего не выбрано. Напечатать этикетки для всех позиций на этой странице?")) return;
+      document.querySelectorAll(".label-checkbox").forEach(function (cb) { cb.checked = true; });
+    }
+    labelsForm.submit();
+  });
+</script>
+{% endblock %}

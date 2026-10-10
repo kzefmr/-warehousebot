@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+{% block title %}Инвентаризация{% endblock %}
+{% block content %}
+
+<h1>📋 Инвентаризация</h1>
+
+<form method="get" action="/admin/inventory" class="search-form">
+  <select name="warehouse_id" onchange="this.form.submit()">
+    {% for w in warehouses %}
+      <option value="{{ w.id }}" {{ 'selected' if warehouse and warehouse.id == w.id else '' }}>
+        {{ w.city_name }} · {{ w.name }}
+      </option>
+    {% endfor %}
+  </select>
+  <button type="button" class="btn qr-btn" id="qr-btn" title="Сканировать QR">📷</button>
+  <a href="/admin/stock?warehouse_id={{ warehouse.id if warehouse else 0 }}" class="btn">← К складу</a>
+</form>
+
+{% if not warehouse %}
+  <div class="alert">Сначала создайте склад.</div>
+{% elif not items %}
+  <div class="alert">Позиций нет.</div>
+{% else %}
+
+<div class="card">
+  <p class="muted" style="margin:0;">
+    Введите фактическое количество там, где оно отличается от учётного.
+    Пустые поля и совпадающие значения будут проигнорированы.
+  </p>
+</div>
+
+<form method="post" action="/admin/inventory">
+  <input type="hidden" name="warehouse_id" value="{{ warehouse.id }}">
+
+  <div class="admin-list">
+    {% for it in items %}
+    <div class="inv-card">
+      <div class="inv-card-info">
+        <div class="item-name">{{ it.short_name or it.name }}</div>
+        {% if it.short_name %}<div class="item-full">{{ it.name }}</div>{% endif %}
+        <div class="item-meta">
+          {% if it.article %}<span class="tag">{{ it.article }}</span>{% endif %}
+          {% if it.segment %}<span class="tag tag-seg">{{ it.segment }}</span>{% endif %}
+          {% if it.applicability %}<span class="tag tag-app">{{ it.applicability }}</span>{% endif %}
+          {% if it.location_name %}<span class="tag">📍{{ it.location_name }}</span>{% endif %}
+        </div>
+      </div>
+      <div class="inv-card-control">
+        <div class="inv-label">Учёт</div>
+        <div class="inv-current">{{ stock.get(it.id, 0) | int }}</div>
+        <div class="inv-unit">{{ it.unit }}</div>
+      </div>
+      <div class="inv-card-input">
+        <label>Факт</label>
+        <input type="text" name="fact_{{ it.id }}" inputmode="numeric" pattern="[0-9]*"
+               placeholder="{{ stock.get(it.id, 0) | int }}"
+               data-current="{{ stock.get(it.id, 0) | int }}">
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <div class="cart-bar cart-bar-static">
+    <div class="cart-info">
+      <span class="cart-count" id="inv-count">0</span>
+      <span class="cart-label">изменений</span>
+    </div>
+    <button type="submit" class="btn btn-primary btn-lg" id="inv-submit" disabled>Применить</button>
+  </div>
+</form>
+
+{% endif %}
+
+{% endblock %}
+
+{% block scripts %}
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<script src="/static/scanner.js"></script>
+<script src="/static/inventory.js"></script>
+<script>
+  document.getElementById("qr-btn").addEventListener("click", function () {
+    window.openQrScanner("inventory");
+  });
+</script>
+{% endblock %}

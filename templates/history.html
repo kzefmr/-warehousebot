@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="row row-between">
+  <h1>🕓 История</h1>
+  <span class="muted">Последние 200</span>
+</div>
+
+{% if not operations %}
+  <div class="alert">Операций пока нет.</div>
+{% else %}
+<div class="list">
+  {% for op in operations %}
+  <div class="list-item-static">
+    <div>
+      <div class="list-item-title">
+        {% if op.operation_type == 'take' %}📥
+        {% elif op.operation_type == 'return' %}📤
+        {% elif op.operation_type == 'income' %}➕
+        {% elif op.operation_type == 'usage' %}🔧
+        {% elif op.operation_type == 'writeoff' %}🗑
+        {% elif op.operation_type == 'inventory' %}✏️
+        {% elif op.operation_type == 'transfer_out' %}📦→
+        {% elif op.operation_type == 'transfer_in' %}📦←
+        {% endif %}
+        {{ op.short_name or op.name or op.article or '—' }}
+      </div>
+      <div class="list-item-sub">
+        {{ op.full_name or '—' }} · {{ op.timestamp }}
+      </div>
+      <div class="list-item-sub">
+        {% if op.segment %}{{ op.segment }}{% endif %}
+        {% if op.applicability %}{% if op.segment %} · {% endif %}{{ op.applicability }}{% endif %}
+        {% if op.warehouse_name %}{% if op.segment or op.applicability %} · {% endif %}{{ op.warehouse_name }}{% endif %}
+        · <b>{{ op.quantity }} {{ op.unit }}</b>
+      </div>
+      {% if op.note %}
+      <div class="list-item-sub muted">💬 {{ op.note }}</div>
+      {% endif %}
+    </div>
+    <div class="row">
+      <a href="/history/{{ op.id }}/edit" class="btn btn-sm">Изменить</a>
+      <form method="post" action="/history/{{ op.id }}/delete" onsubmit="return confirm('Удалить?');" style="margin:0;">
+        <button class="btn btn-sm btn-danger">Удалить</button>
+      </form>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+{% endblock %}

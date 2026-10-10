@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>🔧 Израсходовал</h1>
+
+{% if not items %}
+  <div class="alert">В рюкзаке пусто — нечего расходовать.</div>
+  <a href="/backpack" class="btn">← Назад</a>
+{% else %}
+
+<div class="card">
+  <p class="muted" style="margin:0;">
+    Укажи, сколько материала потрачено. Позиции исчезнут из твоего рюкзака.
+    Позже это попадёт в отчёт «Расход».
+  </p>
+</div>
+
+<form method="post" action="/backpack/usage" id="usage-form">
+  <div class="list">
+    {% for it in items %}
+    <div class="item-card">
+      <div class="item-main">
+        <div class="item-name">{{ it.short_name or it.name }}</div>
+        {% if it.short_name %}<div class="item-full">{{ it.name }}</div>{% endif %}
+        <div class="item-meta">
+          {% if it.article %}<span class="tag">{{ it.article }}</span>{% endif %}
+          {% if it.segment %}<span class="tag tag-seg">{{ it.segment }}</span>{% endif %}
+          {% if it.applicability %}<span class="tag tag-app">{{ it.applicability }}</span>{% endif %}
+        </div>
+        <div class="item-stock">У меня: <b>{{ it.balance | int }} {{ it.unit }}</b></div>
+      </div>
+      <div class="item-actions">
+        <div class="qty-control">
+          <button type="button" class="qty-btn qty-minus" data-id="{{ it.catalog_id }}" data-max="{{ it.balance | int }}">−</button>
+          <input type="text" class="qty-input" data-id="{{ it.catalog_id }}" value="" inputmode="numeric" pattern="[0-9]*" data-max="{{ it.balance | int }}">
+          <button type="button" class="qty-btn qty-plus" data-id="{{ it.catalog_id }}" data-max="{{ it.balance | int }}">+</button>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <div class="card" style="margin-top:14px;">
+    <label>Комментарий (необязательно)
+      <input type="text" name="note" id="usage-note" placeholder="Объект, адрес, детали">
+    </label>
+  </div>
+
+  <input type="hidden" name="cart" id="cart-data" value="">
+
+  <div class="cart-bar cart-bar-static">
+    <div class="cart-info">
+      <span class="cart-count" id="cart-count">0</span>
+      <span class="cart-label">позиций</span>
+    </div>
+    <button type="submit" class="btn btn-primary btn-lg" id="submit-btn" disabled>Израсходовать</button>
+  </div>
+</form>
+
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/usage.js"></script>
+{% endblock %}

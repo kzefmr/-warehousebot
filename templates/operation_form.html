@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Операция #{{ op.id }}</h1>
+
+<div class="card card-narrow">
+  {% if error %}<div class="alert alert-error">{{ error }}</div>{% endif %}
+  <p>Сотрудник: <b>{{ op.full_name or '—' }}</b></p>
+  <p>Дата: {{ op.timestamp }}</p>
+
+  <form method="post" action="/history/{{ op.id }}/edit">
+    <label>catalog_id
+      <input type="number" name="catalog_id" value="{{ op.catalog_id }}" required>
+    </label>
+    <label>warehouse_id
+      <input type="number" name="warehouse_id" value="{{ op.warehouse_id }}" required>
+    </label>
+    <label>Количество (может быть отрицательным для инвентаризации)
+      <input type="number" name="quantity" step="any" value="{{ op.quantity }}" required>
+    </label>
+    <label>Тип
+      <select name="operation_type">
+        <option value="take"         {{ 'selected' if op.operation_type == 'take' else '' }}>Взял</option>
+        <option value="return"       {{ 'selected' if op.operation_type == 'return' else '' }}>Вернул</option>
+        <option value="income"       {{ 'selected' if op.operation_type == 'income' else '' }}>Приход</option>
+        <option value="usage"        {{ 'selected' if op.operation_type == 'usage' else '' }}>Расход</option>
+        <option value="writeoff"     {{ 'selected' if op.operation_type == 'writeoff' else '' }}>Списано</option>
+        <option value="inventory"    {{ 'selected' if op.operation_type == 'inventory' else '' }}>Инвентаризация</option>
+        <option value="transfer_out" {{ 'selected' if op.operation_type == 'transfer_out' else '' }}>Передал</option>
+        <option value="transfer_in"  {{ 'selected' if op.operation_type == 'transfer_in' else '' }}>Получил</option>
+      </select>
+    </label>
+    <label>Комментарий
+      <input type="text" name="note" value="{{ op.note or '' }}">
+    </label>
+    <div class="row">
+      <button type="submit" class="btn btn-primary">Сохранить</button>
+      <a href="/history" class="btn">Отмена</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

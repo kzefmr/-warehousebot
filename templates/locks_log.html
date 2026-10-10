@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="row row-between">
+  <h1>📋 Журнал шкафчиков</h1>
+  <a href="/locks" class="btn">← К шкафчикам</a>
+</div>
+
+{% if not log %}
+  <div class="alert">Пока нет событий.</div>
+{% else %}
+<div class="list">
+  {% for e in log %}
+  <div class="list-item-static {% if e.event_type == 'unauthorized_open' %}alarm-row{% endif %}">
+    <div>
+      <div class="list-item-title">
+        {% if e.event_type == 'open_request' %}🔓
+        {% elif e.event_type == 'command_sent' %}📡
+        {% elif e.event_type == 'opened' %}✅
+        {% elif e.event_type == 'closed' %}🔒
+        {% elif e.event_type == 'timeout' %}⏱
+        {% elif e.event_type == 'unauthorized_open' %}⚠️
+        {% endif %}
+        {{ e.lock_name or '—' }}
+        {% if e.warehouse_name %}· {{ e.warehouse_name }}{% endif %}
+      </div>
+      <div class="list-item-sub">
+        {{ e.created_at }}
+        {% if e.full_name %} · {{ e.full_name }}{% endif %}
+      </div>
+      <div class="list-item-sub">
+        {% if e.event_type == 'open_request' %}Запрос на открытие
+        {% elif e.event_type == 'command_sent' %}Шкафчик открывается
+        {% elif e.event_type == 'opened' %}Дверь открыта
+        {% elif e.event_type == 'closed' %}Дверь закрыта
+        {% elif e.event_type == 'timeout' %}Дверь не открыли вовремя
+        {% elif e.event_type == 'unauthorized_open' %}⚠️ <b>Открыто без команды</b>
+        {% else %}{{ e.event_type }}{% endif %}
+        {% if e.note %}— {{ e.note }}{% endif %}
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+{% endblock %}

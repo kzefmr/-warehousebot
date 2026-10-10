@@ -1,0 +1,296 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <title>Этикетки — материалы</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #f5f6f8;
+    }
+
+    {% set cols = label_cols or 2 %}
+    {% set rows = label_rows or 6 %}
+
+    {% set page_w = 200 %}
+    {% set page_h = 287 %}
+    {% set gap = 2 %}
+
+    {% set label_w = (page_w - gap * (cols - 1)) / cols %}
+    {% set label_h = (page_h - gap * (rows - 1)) / rows %}
+
+    {# Скромные базовые размеры — JS потом уменьшит если не влезает #}
+    {% set fsize_name = 11 %}
+    {% set fsize_small = 8 %}
+    {% set fsize_tag = 9 %}
+    {% set fsize_code = 9 %}
+
+    {# QR — оптимальный размер: не больше 35% ширины и 55% высоты #}
+    {% set qr_mm = [label_h * 0.55, label_w * 0.35, 25] | min %}
+    {% set qr_px = (qr_mm * 3.78) | round(0) | int %}
+
+    {# Узкая ли этикетка #}
+    {% set is_narrow = label_w < 55 %}
+    {% set is_very_narrow = label_w < 45 %}
+
+    .print-toolbar {
+      position: sticky; top: 0; z-index: 10;
+      background: #fff; border-bottom: 1px solid #e5e7eb;
+      padding: 10px 16px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap;
+    }
+    .print-toolbar .btn {
+      display: inline-block; padding: 8px 14px;
+      border: 1px solid #d1d5db; border-radius: 8px;
+      background: #fff; color: #222; text-decoration: none;
+      font-size: 14px; cursor: pointer;
+    }
+    .print-toolbar .btn-primary { background: #2563eb; color: #fff; border-color: #2563eb; }
+    .print-toolbar .muted { color: #6b7280; font-size: 13px; }
+    .print-toolbar .chip {
+      display: inline-block; padding: 5px 12px;
+      border: 1px solid #d1d5db; border-radius: 16px;
+      background: #fff; color: #222;
+      font-size: 13px; text-decoration: none; cursor: pointer;
+    }
+    .print-toolbar .chip.active {
+      background: #2563eb; color: #fff; border-color: #2563eb;
+    }
+    .print-toolbar .group {
+      display: inline-flex; gap: 4px; align-items: center;
+      margin-left: 8px;
+    }
+
+    .labels-page {
+      display: grid;
+      grid-template-columns: repeat({{ cols }}, {{ label_w }}mm);
+      grid-auto-rows: {{ label_h }}mm;
+      gap: {{ gap }}mm;
+      padding: 5mm;
+      width: 210mm;
+      margin: 0 auto;
+    }
+
+    .label {
+      border: 1px solid #9ca3af;
+      border-radius: 2mm;
+      padding: 1.2mm 1.8mm;
+      display: flex;
+      gap: 1.6mm;
+      align-items: stretch;
+      background: #fff;
+      overflow: hidden;
+      page-break-inside: avoid;
+      height: {{ label_h }}mm;
+    }
+
+    .label-qr {
+      flex-shrink: 0;
+      display: flex; flex-direction: column;
+      justify-content: center; align-items: center;
+    }
+    .label-qr img {
+      display: block;
+      width: {{ qr_px }}px;
+      height: {{ qr_px }}px;
+    }
+    .label-code {
+      font-size: {{ fsize_code }}pt;
+      font-weight: 700; color: #1e40af;
+      margin-top: 0.4mm;
+      letter-spacing: 0.2mm;
+      white-space: nowrap;
+      line-height: 1;
+    }
+
+    .label-info {
+      min-width: 0; flex: 1;
+      display: flex; flex-direction: column;
+      justify-content: center;
+      gap: 0.5mm;
+      overflow: hidden;
+    }
+
+    .label-short {
+      font-size: {{ fsize_small }}pt;
+      font-style: italic; color: #6b7280;
+      line-height: 1.15;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .label-name {
+      font-weight: 700;
+      font-size: {{ fsize_name }}pt;
+      line-height: 1.2;
+      color: #111;
+      word-break: break-word;
+      overflow: hidden;
+    }
+    .label-location {
+      font-size: {{ fsize_small }}pt;
+      font-weight: 600;
+      color: #0369a1;
+      line-height: 1.15;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .label-tags {
+      display: flex; flex-wrap: wrap; gap: 0.4mm;
+      overflow: hidden;
+    }
+    .label-tag {
+      display: inline-block;
+      padding: 0.2mm 1mm;
+      font-size: {{ fsize_tag }}pt;
+      font-weight: 700;
+      border-radius: 0.6mm;
+      line-height: 1.1;
+      white-space: nowrap;
+    }
+    .label-tag-seg { background: #dbeafe; color: #1e40af; }
+    .label-tag-app { background: #dcfce7; color: #166534; }
+
+    .label-article {
+      font-size: {{ fsize_small }}pt;
+      color: #374151;
+      line-height: 1.15;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    {% if is_narrow %}
+    .label-location { display: none; }
+    {% endif %}
+
+    {% if is_very_narrow %}
+    .label-short { display: none; }
+    .label-tags { display: none; }
+    {% endif %}
+
+    @media print {
+      body { background: #fff; }
+      .print-toolbar { display: none; }
+      .labels-page { width: auto; margin: 0; padding: 5mm; }
+      .label { border: 0.3mm solid #000; }
+      @page { size: A4; margin: 0; }
+    }
+  </style>
+</head>
+<body>
+
+{% set qs_base = (ids_query ~ '&') if ids_query else '' %}
+
+<div class="print-toolbar">
+  <button type="button" class="btn btn-primary" onclick="window.print()">🖨️ Печать</button>
+  <a href="/catalog{% if warehouse_id %}?warehouse_id={{ warehouse_id }}{% endif %}" class="btn">← К каталогу</a>
+
+  <div class="group">
+    <span class="muted">Колонок:</span>
+    <a href="?{{ qs_base }}cols=2&rows={{ rows }}" class="chip {{ 'active' if cols == 2 else '' }}">2</a>
+    <a href="?{{ qs_base }}cols=3&rows={{ rows }}" class="chip {{ 'active' if cols == 3 else '' }}">3</a>
+    <a href="?{{ qs_base }}cols=4&rows={{ rows }}" class="chip {{ 'active' if cols == 4 else '' }}">4</a>
+  </div>
+
+  <div class="group">
+    <span class="muted">Строк:</span>
+    <a href="?{{ qs_base }}cols={{ cols }}&rows=4"  class="chip {{ 'active' if rows == 4  else '' }}">4</a>
+    <a href="?{{ qs_base }}cols={{ cols }}&rows=6"  class="chip {{ 'active' if rows == 6  else '' }}">6</a>
+    <a href="?{{ qs_base }}cols={{ cols }}&rows=8"  class="chip {{ 'active' if rows == 8  else '' }}">8</a>
+    <a href="?{{ qs_base }}cols={{ cols }}&rows=10" class="chip {{ 'active' if rows == 10 else '' }}">10</a>
+  </div>
+
+  <span class="muted">Размер: <b>{{ label_w | round(0) | int }} × {{ label_h | round(0) | int }} мм</b></span>
+</div>
+
+{% if not labels %}
+  <div style="padding:40px;text-align:center;color:#6b7280;">Не выбрано ни одной позиции.</div>
+{% else %}
+<div class="labels-page" id="labels-page">
+  {% for it in labels %}
+  <div class="label">
+    <div class="label-qr">
+      <img src="/qr/{{ it.qr_code }}.png" alt="QR {{ it.qr_code }}">
+      <div class="label-code">{{ it.qr_code }}</div>
+    </div>
+    <div class="label-info" data-autosize>
+      {% if it.short_name and it.short_name != it.name %}
+        <div class="label-short">{{ it.short_name }}</div>
+      {% endif %}
+      <div class="label-name">{{ it.name }}</div>
+      {% if it.location_name %}
+        <div class="label-location">📍 {{ it.location_name }}</div>
+      {% endif %}
+      {% if it.segment or it.applicability %}
+      <div class="label-tags">
+        {% if it.segment %}<span class="label-tag label-tag-seg">{{ it.segment }}</span>{% endif %}
+        {% if it.applicability %}<span class="label-tag label-tag-app">{{ it.applicability }}</span>{% endif %}
+      </div>
+      {% endif %}
+      {% if it.article %}
+      <div class="label-article">Арт. {{ it.article }}</div>
+      {% endif %}
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+<script>
+// Автоуменьшение шрифта: если блок не влезает по высоте — уменьшаем.
+(function () {
+  function autosize() {
+    var blocks = document.querySelectorAll("[data-autosize]");
+    blocks.forEach(function (block) {
+      // Сбрасываем к базовым размерам
+      var els = block.querySelectorAll("*");
+      els.forEach(function (el) {
+        el.style.fontSize = "";
+      });
+      block.style.fontSize = "";
+
+      var parent = block.closest(".label");
+      if (!parent) return;
+      var maxH = parent.clientHeight - 6; // минус padding
+      var size = 100;
+      var steps = 0;
+
+      // Пока блок выше родителя и мы не уменьшили слишком сильно
+      while (block.scrollHeight > maxH && steps < 20) {
+        size -= 5; // уменьшаем на 5%
+        steps++;
+        var factor = size / 100;
+        els.forEach(function (el) {
+          var computed = window.getComputedStyle(el);
+          // Только шрифты — не трогаем размеры QR
+          if (el.tagName === "IMG") return;
+          var base = parseFloat(computed.fontSize);
+          if (!base) return;
+          // Запоминаем базовый размер при первом проходе
+          if (!el.dataset.baseFont) {
+            el.dataset.baseFont = base;
+          }
+          var baseSize = parseFloat(el.dataset.baseFont);
+          el.style.fontSize = (baseSize * factor) + "px";
+        });
+      }
+    });
+  }
+
+  // Пробуем несколько раз после загрузки (шрифты могут подгрузиться)
+  if (document.readyState === "complete") {
+    autosize();
+  } else {
+    window.addEventListener("load", autosize);
+  }
+
+  // При печати — пересчитываем
+  window.addEventListener("beforeprint", autosize);
+})();
+</script>
+
+</body>
+</html>

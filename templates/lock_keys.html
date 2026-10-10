@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+{% block title %}Ключи — {{ lock.name }}{% endblock %}
+{% block content %}
+
+<div class="row row-between">
+  <div>
+    <h1>🔑 Ключи — {{ lock.name }}</h1>
+    <p class="muted">{{ lock.warehouse_name or '—' }}</p>
+  </div>
+  <div class="row">
+    <a href="/admin/locks/{{ lock.id }}/calibrate" class="btn">⚙️ Калибровка</a>
+    <a href="/locks" class="btn">← К шкафчикам</a>
+  </div>
+</div>
+
+{% if conflicts %}
+<div class="alert alert-error">
+  ⚠️ <b>Обнаружены конфликты сопротивлений.</b>
+  Гнёзда с одинаковыми номиналами:
+  {% for group in conflicts %}
+    <b>{{ group | join(', ') }}</b>{% if not loop.last %}; {% endif %}
+  {% endfor %}.
+  Замените резисторы, чтобы отличались.
+</div>
+{% endif %}
+
+<div class="card">
+  <div class="row row-between">
+    <div>
+      <b>Откалибровано:</b> {{ progress.calibrated }} из {{ progress.total }}
+      · <b>Сейчас в шкафу:</b> {{ stats.present }} из {{ stats.total }}
+    </div>
+    <form method="post" action="/admin/locks/{{ lock.id }}/calibrate" style="margin:0;">
+      <button class="btn" type="submit">⚙️ Запустить калибровку</button>
+    </form>
+  </div>
+</div>
+
+{% for row_letter in ["A", "B", "C"] %}
+<div class="card">
+  <h2>Ряд {{ row_letter }} — гнёзда {{ row_letter }}1–{{ row_letter }}16</h2>
+
+  <div class="slot-grid">
+    {% for k in rows_data[row_letter] %}
+    <a href="/admin/locks/{{ lock.id }}/keys/{{ k.slot_code }}/edit" class="slot-card
+        {% if k.resistance_adc is none %}slot-uncalibrated
+        {% elif k.is_present %}slot-present
+        {% else %}slot-absent{% endif %}">
+      <div class="slot-code">{{ k.slot_code }}</div>
+      <div class="slot-name">{{ k.name or '— пусто —' }}</div>
+      <div class="slot-status">
+        {% if k.resistance_adc is none %}
+          ⚪ Не калиброван
+        {% elif k.is_present %}
+          🟢 На месте
+        {% else %}
+          🔴 Отсутствует
+        {% endif %}
+      </div>
+      {% if k.resistance_adc is not none %}
+      <div class="slot-adc">ADC: {{ k.resistance_adc }}</div>
+      {% endif %}
+    </a>
+    {% endfor %}
+  </div>
+</div>
+{% endfor %}
+
+<div class="card">
+  <h2>Журнал ключей</h2>
+  {% if not key_log %}
+    <p class="muted">Пока нет событий.</p>
+  {% else %}
+  <div class="list">
+    {% for e in key_log %}
+    <div class="list-item-static">
+      <div>
+        <div class="list-item-title">
+          {% if e.event_type == 'key_taken' %}🔴 Взят
+          {% elif e.event_type == 'key_returned' %}🟢 Возвращён
+          {% else %}{{ e.event_type }}{% endif %}
+          — гнездо {{ e.slot_code }}
+          {% if e.key_name %} ({{ e.key_name }}){% endif %}
+        </div>
+        <div class="list-item-sub">
+          {{ e.created_at }}
+          {% if e.full_name %} · {{ e.full_name }}{% endif %}
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+</div>
+
+{% endblock %}

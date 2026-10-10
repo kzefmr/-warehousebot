@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="row row-between">
+  <h1>🔐 Шкафчики с ключами</h1>
+  <div class="row">
+    <a href="/locks/log" class="btn">📋 Журнал</a>
+    <a href="/locks/new" class="btn btn-primary">Добавить</a>
+  </div>
+</div>
+
+{% if not locks %}
+  <div class="alert">Шкафчиков пока нет.</div>
+{% else %}
+<div class="list">
+  {% for l in locks %}
+  <div class="list-item-static">
+    <div>
+      <div class="list-item-title">{{ l.name }}</div>
+      <div class="list-item-sub">{{ l.warehouse_name or '—' }}</div>
+      <div class="list-item-sub">
+        {% if l.is_open %}🔓 Дверь открыта
+        {% elif l.pending_open %}⏳ Открывается
+        {% else %}🔒 Закрыт{% endif %}
+      </div>
+    </div>
+    <div class="row" style="flex-direction:column; align-items:stretch; gap:4px;">
+      <a href="/lock/{{ l.id }}" class="btn btn-sm btn-primary">Открыть</a>
+        <a href="/admin/locks/{{ l.id }}/keys" class="btn btn-sm">🔑 Ключи</a>
+      <a href="/locks/{{ l.id }}/edit" class="btn btn-sm">Изменить</a>
+      <form method="post" action="/locks/{{ l.id }}/delete" onsubmit="return confirm('Удалить шкафчик?');" style="margin:0;">
+        <button class="btn btn-sm btn-danger" style="width:100%;">Удалить</button>
+      </form>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>📋 Журнал операций</h1>
+{% set form_action = "/reports/operations" %}
+{% set export_url = "/reports/operations/export" %}
+{% set show_dates = True %}
+{% set show_city = False %}
+{% set show_user = True %}
+{% include "_report_filters.html" %}
+
+<div class="card">
+  <form method="get" action="/reports/operations" class="filter-row" style="margin:0;">
+    {% if date_from %}<input type="hidden" name="date_from" value="{{ date_from }}">{% endif %}
+    {% if date_to %}<input type="hidden" name="date_to" value="{{ date_to }}">{% endif %}
+    {% if warehouse_id %}<input type="hidden" name="warehouse_id" value="{{ warehouse_id }}">{% endif %}
+    {% if user_id %}<input type="hidden" name="user_id" value="{{ user_id }}">{% endif %}
+    <label>Тип операции
+      <select name="op_type" onchange="this.form.submit()">
+        <option value="">— Все —</option>
+        <option value="income"       {{ 'selected' if op_type == 'income' else '' }}>➕ Приход</option>
+        <option value="take"         {{ 'selected' if op_type == 'take' else '' }}>📥 Взял</option>
+        <option value="return"       {{ 'selected' if op_type == 'return' else '' }}>📤 Вернул</option>
+        <option value="usage"        {{ 'selected' if op_type == 'usage' else '' }}>🔧 Расход</option>
+        <option value="writeoff"     {{ 'selected' if op_type == 'writeoff' else '' }}>🗑 Списано</option>
+        <option value="inventory"    {{ 'selected' if op_type == 'inventory' else '' }}>✏️ Инвентаризация</option>
+        <option value="transfer_out" {{ 'selected' if op_type == 'transfer_out' else '' }}>📦 Передал</option>
+        <option value="transfer_in"  {{ 'selected' if op_type == 'transfer_in' else '' }}>📦 Получил</option>
+      </select>
+    </label>
+  </form>
+</div>
+
+{% if not rows %}
+  <div class="alert">Нет операций за выбранный период.</div>
+{% else %}
+<table class="table">
+  <thead>
+    <tr>
+      <th>Дата</th>
+      <th>Сотрудник</th>
+      <th>Операция</th>
+      <th>Наименование</th>
+      <th>Склад</th>
+      <th>Кол-во</th>
+      <th>Комментарий</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for r in rows %}
+    <tr>
+      <td class="small">{{ r.timestamp }}</td>
+      <td>{{ r.full_name or '—' }}</td>
+      <td>
+        {% if r.operation_type == 'take' %}📥 Взял
+        {% elif r.operation_type == 'return' %}📤 Вернул
+        {% elif r.operation_type == 'income' %}➕ Приход
+        {% elif r.operation_type == 'usage' %}🔧 Расход
+        {% elif r.operation_type == 'writeoff' %}🗑 Списано
+        {% elif r.operation_type == 'inventory' %}✏️ Инвент.
+        {% elif r.operation_type == 'transfer_out' %}📦 Передал
+        {% elif r.operation_type == 'transfer_in' %}📦 Получил
+        {% endif %}
+      </td>
+      <td>
+        {{ r.short_name or r.name }}
+        <div class="muted small">
+          {{ r.segment or '' }}{% if r.applicability %} · {{ r.applicability }}{% endif %}
+        </div>
+      </td>
+      <td>{{ r.warehouse_name or '—' }}</td>
+      <td>{{ r.quantity }} {{ r.unit }}</td>
+      <td class="muted small">{{ r.note or '' }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endif %}
+{% endblock %}

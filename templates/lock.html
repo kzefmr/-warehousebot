@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+{% block title %}{{ lock.name }}{% endblock %}
+{% block content %}
+
+<div class="row row-between">
+  <h1>🔐 {{ lock.name }}</h1>
+  {% if online %}
+    <span class="status-online">🟢 На связи</span>
+  {% elif seen_age is not none %}
+    <span class="status-offline">🔴 Не в сети ({{ seen_age }} сек)</span>
+  {% else %}
+    <span class="status-offline">🔴 Нет данных</span>
+  {% endif %}
+</div>
+<p class="muted">{{ lock.warehouse_name or '—' }}</p>
+
+{% if request.query_params.get('sent') %}
+  <div class="alert">✅ Шкафчик сейчас откроется. Подойдите к нему.</div>
+{% endif %}
+{% if request.query_params.get('cancelled') %}
+  <div class="alert">Открытие отменено.</div>
+{% endif %}
+{% if request.query_params.get('cooldown') %}
+  <div class="alert alert-error">⏱ Подождите {{ request.query_params.get('cooldown') }} сек.</div>
+{% endif %}
+
+{% if has_alarm %}
+<div class="alert alert-error">
+  ⚠️ <b>Внимание!</b> Есть следы открытия двери <b>без команды</b>.
+  Проверьте журнал внизу.
+</div>
+{% endif %}
+
+<div class="card">
+  <div class="lock-status">
+
+    {% if not online %}
+      <div class="lock-status-badge lock-offline">⚠️ Шкафчик не на связи</div>
+      <p>Последний раз отвечал {% if seen_age %}{{ seen_age }} секунд назад{% else %}никогда{% endif %}.
+      Проверьте питание и Wi-Fi ESP32.</p>
+
+    {% elif cooldown_left > 0 %}
+      <div class="lock-status-badge lock-pending">⏱ Подождите {{ cooldown_left }} сек</div>
+      <p>Шкафчик был открыт недавно. Немного подождите.</p>
+      <button class="btn" disabled>🔒 Подождите {{ cooldown_left }} сек</button>
+
+    {% elif lock.pending_open %}
+      <div class="lock-status-badge lock-pending">⏳ Открывается</div>
+      <p>Шкафчик сейчас откроется. Подойдите к нему.</p>
+
+    {% elif lock.is_open %}
+      <div class="lock-status-badge lock-open">🔓 Дверь открыта</div>
+      <p>Возьмите ключ и закройте дверь — замок защёлкнется сам.</p>
+
+    {% else %}
+      <div class="lock-status-badge lock-closed">🔒 Закрыт</div>
+      <p>Нажмите кнопку — шкафчик откроется на несколько секунд.</p>
+      <form method="post" action="/lock/{{ lock.id }}/open" style="margin-top:12px;">
+        <button class="btn btn-primary btn-lg">🔓 Открыть шкафчик</button>
+      </form>
+    {% endif %}
+
+  </div>
+</div>
+
+<script>
+  setTimeout(function () { location.reload(); }, 5000);
+</script>
+
+<div class="card">
+  <h2>История</h2>
+  {% if not log %}
+    <p class="muted">Пока нет событий.</p>
+  {% else %}
+  <div class="list">
+    {% for e in log %}
+    <div class="list-item-static {% if e.event_type == 'unauthorized_open' %}alarm-row{% endif %}">
+      <div>
+        <div class="list-item-title">
+          {% if e.event_type == 'open_request' %}🔓 Запрос на открытие
+          {% elif e.event_type == 'command_sent' %}📡 Шкафчик открывается
+          {% elif e.event_type == 'opened' %}✅ Дверь открыта
+          {% elif e.event_type == 'closed' %}🔒 Дверь закрыта
+          {% elif e.event_type == 'timeout' %}⏱ Дверь не открыли вовремя
+          {% elif e.event_type == 'unauthorized_open' %}⚠️ Открыто без команды
+          {% else %}{{ e.event_type }}{% endif %}
+        </div>
+        <div class="list-item-sub">
+          {{ e.created_at }}
+          {% if e.full_name %} · {{ e.full_name }}{% endif %}
+        </div>
+        {% if e.note %}<div class="list-item-sub muted">{{ e.note }}</div>{% endif %}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+</div>
+
+{% endblock %}

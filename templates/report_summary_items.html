@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>📈 По позициям</h1>
+{% set form_action = "/reports/summary-items" %}
+{% set export_url = "/reports/summary-items/export" %}
+{% set show_dates = True %}
+{% set show_city = True %}
+{% set show_user = False %}
+{% include "_report_filters.html" %}
+
+{% if not rows %}
+  <div class="alert">Нет данных.</div>
+{% else %}
+<table class="table">
+  <thead>
+    <tr>
+      <th>Склад</th>
+      <th>Наименование</th>
+      <th>Приход</th>
+      <th>Выдано</th>
+      <th>Возврат</th>
+      <th>Расход</th>
+      <th>Списано</th>
+      <th>Остаток</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for r in rows %}
+    <tr>
+      <td>
+        {{ r.warehouse_name or '—' }}
+        <div class="muted small">{{ r.city_name or '' }}</div>
+      </td>
+      <td>
+        <b>{{ r.short_name or r.name }}</b>
+        <div class="muted small">
+          {{ r.segment or '' }}{% if r.applicability %} · {{ r.applicability }}{% endif %}
+        </div>
+      </td>
+      <td>{{ r.income | int }}</td>
+      <td>{{ r.taken | int }}</td>
+      <td>{{ r.returned | int }}</td>
+      <td>{{ r.usage | int }}</td>
+      <td>{{ r.writeoff | int }}</td>
+      <td>
+        {% if r.stock < 0 %}
+          <b class="stock-negative">{{ r.stock | int }}</b>
+        {% else %}
+          <b>{{ r.stock | int }}</b>
+        {% endif %}
+        <span class="muted small">{{ r.unit }}</span>
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endif %}
+{% endblock %}

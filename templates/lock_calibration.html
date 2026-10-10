@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% block title %}Калибровка — {{ lock.name }}{% endblock %}
+{% block content %}
+
+<div class="row row-between">
+  <h1>⚙️ Калибровка — {{ lock.name }}</h1>
+  <a href="/admin/locks/{{ lock.id }}/keys" class="btn">← К ключам</a>
+</div>
+
+{% if not online %}
+<div class="alert alert-error">
+  🔴 Шкафчик не на связи. Проверьте питание и Wi-Fi ESP32.
+</div>
+{% endif %}
+
+{% if conflicts %}
+<div class="alert alert-error">
+  ⚠️ <b>Конфликты сопротивлений:</b>
+  {% for group in conflicts %}
+    <b>{{ group | join(', ') }}</b>{% if not loop.last %}; {% endif %}
+  {% endfor %}.
+  Замените резисторы, чтобы значения отличались.
+</div>
+{% endif %}
+
+{% if started %}
+<div class="alert">
+  ✅ Команда на калибровку отправлена. ESP32 начнёт сканирование в течение 2 секунд.
+</div>
+{% endif %}
+
+<div class="card">
+  <h2>Прогресс</h2>
+
+  {% if progress.scan_complete %}
+    <p style="color:#16a34a; font-weight:600;">
+      ✅ Сканирование завершено.
+      Найдено ключей: <b>{{ progress.calibrated }}</b> из {{ progress.total }} гнёзд.
+    </p>
+    <p class="muted small">
+      Это все ключи, которые сейчас вставлены в шкафчик.
+      Остальные гнёзда пустые — они откалибруются, когда вставите в них ключи.
+    </p>
+  {% elif progress.requested %}
+    <p>⏳ Сканирование идёт... Подождите.</p>
+  {% else %}
+    <p>
+      Готово к калибровке. Сейчас откалибровано:
+      <b>{{ progress.calibrated }}</b> из {{ progress.total }} гнёзд.
+    </p>
+    <p class="muted small">
+      Вставьте все ключи в шкафчик → нажмите «Начать калибровку».
+    </p>
+  {% endif %}
+
+  <div class="row" style="margin-top:16px;">
+    <form method="post" action="/admin/locks/{{ lock.id }}/calibrate" style="margin:0;">
+      <button class="btn btn-primary" type="submit"
+              onclick="return confirm('Начать калибровку? Все текущие значения сбросятся.');">
+        ⚙️ Начать калибровку
+      </button>
+    </form>
+  </div>
+</div>
+
+<div class="card">
+  <h2>Как это работает</h2>
+  <ol style="margin:0; padding-left:20px; line-height:1.8;">
+    <li><b>Вставьте все ключи</b> в свои гнёзда.</li>
+    <li>Нажмите <b>«Начать калибровку»</b>.</li>
+    <li>ESP32 просканирует все 48 гнёзд и пришлёт значения.</li>
+    <li>Сервер запишет их как эталон.</li>
+    <li>Если два гнезда покажут одинаковые значения — появится предупреждение.</li>
+  </ol>
+</div>
+
+<script>
+  {% if progress.requested %}
+  setTimeout(function() { location.reload(); }, 2000);
+  {% endif %}
+</script>
+
+{% endblock %}

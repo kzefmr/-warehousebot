@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>📦 Передать инструмент</h1>
+
+<div class="card card-narrow">
+  {% if error %}<div class="alert alert-error">{{ error }}</div>{% endif %}
+
+  <h2>{{ tool.inventory_no }}</h2>
+  <p class="muted">{{ tool.name }}</p>
+
+  <form method="post" action="/tools/{{ tool.id }}/give">
+    <label>Кому передать
+      <select name="to_user_id" required>
+        <option value="">— выбери сотрудника —</option>
+        {% for r in recipients %}
+          <option value="{{ r.id }}">{{ r.full_name }}</option>
+        {% endfor %}
+      </select>
+    </label>
+
+    <div class="row">
+      <button type="submit" class="btn btn-primary">Передать</button>
+      <a href="/tools/{{ tool.id }}" class="btn">Отмена</a>
+    </div>
+  </form>
+
+  <p class="muted small" style="margin-top:16px;">
+    Инструмент перейдёт на нового сотрудника сразу — подтверждение не требуется.
+  </p>
+</div>
+{% endblock %}

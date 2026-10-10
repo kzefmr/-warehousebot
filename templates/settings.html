@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>⚙️ Настройки</h1>
+
+<div class="card card-narrow">
+  <form method="post" action="/settings">
+
+    <h2>Отображение на «Взять со склада»</h2>
+
+    <label class="checkbox">
+      <input type="checkbox" name="show_favorites" {{ 'checked' if settings.get('show_favorites') == '1' else '' }}>
+      Показывать избранное
+    </label>
+    <label class="checkbox">
+      <input type="checkbox" name="show_recent" {{ 'checked' if settings.get('show_recent') == '1' else '' }}>
+      Показывать недавние сверху
+    </label>
+    <label class="checkbox">
+      <input type="checkbox" name="show_stock" {{ 'checked' if settings.get('show_stock') == '1' else '' }}>
+      Показывать остаток на складе
+    </label>
+    <label>Сколько недавних показывать
+      <input type="number" name="recent_limit" min="1" max="50" value="{{ settings.get('recent_limit', '10') }}">
+    </label>
+
+    <hr style="margin:20px 0; border:none; border-top:1px solid #e5e7eb;">
+
+    <h2>Инструменты</h2>
+
+    <label>Напоминать, если инструмент у сотрудника больше (дней). 0 — не напоминать
+      <input type="number" name="tool_hold_days_alert" min="0" max="365" value="{{ settings.get('tool_hold_days_alert', '0') }}">
+    </label>
+
+    <button type="submit" class="btn btn-primary" style="margin-top:20px;">Сохранить</button>
+  </form>
+</div>
+
+<div class="card card-narrow" style="border:1px solid #fecaca; margin-top:24px;">
+  <div style="margin-bottom:20px;">
+  <a href="/admin/backups" class="btn">💾 Резервные копии</a>
+</div>
+<h2 style="color:#b91c1c;">⚠️ Опасная зона</h2>
+  <p class="muted" style="margin-bottom:16px;">
+    Действия ниже необратимы. История операций и заявок будет удалена навсегда.
+    Каталог, склады, инструменты, города и пользователи останутся.
+  </p>
+  <a href="/reset" class="btn btn-danger">Стереть все операции</a>
+</div>
+
+{% endblock %}

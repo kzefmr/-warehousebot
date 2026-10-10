@@ -1,0 +1,155 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>🎒 Мой рюкзак</h1>
+
+{% if request.query_params.get('sent') %}<div class="alert">✅ Заявка отправлена.</div>{% endif %}
+{% if request.query_params.get('accepted') %}<div class="alert">✅ Передача принята.</div>{% endif %}
+{% if request.query_params.get('rejected') %}<div class="alert">Заявка отклонена.</div>{% endif %}
+{% if request.query_params.get('cancelled') %}<div class="alert">Заявка отменена.</div>{% endif %}
+{% if request.query_params.get('returned') %}<div class="alert">✅ Возврат записан.</div>{% endif %}
+{% if request.query_params.get('used') %}<div class="alert">✅ Расход записан.</div>{% endif %}
+
+{# ============ ВХОДЯЩИЕ ПЕРЕДАЧИ МАТЕРИАЛОВ ============ #}
+{% if incoming %}
+<div class="card">
+  <h2>📨 Входящие передачи ({{ incoming|length }})</h2>
+  <div class="list">
+    {% for t in incoming %}
+    <div class="list-item-static">
+      <div>
+        <div class="list-item-title">{{ t.short_name or t.name }}</div>
+        <div class="list-item-sub">
+          от <b>{{ t.from_name }}</b> · {{ t.quantity }} {{ t.unit }}
+          {% if t.segment %} · {{ t.segment }}{% endif %}
+          {% if t.applicability %} · {{ t.applicability }}{% endif %}
+        </div>
+      </div>
+      <div class="row">
+        <form method="post" action="/transfers/{{ t.id }}/accept" style="margin:0;">
+          <button class="btn btn-sm btn-primary">Принять</button>
+        </form>
+        <form method="post" action="/transfers/{{ t.id }}/reject" onsubmit="return confirm('Отклонить?');" style="margin:0;">
+          <button class="btn btn-sm btn-danger">Отклонить</button>
+        </form>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+{# ============ ТАБЫ ============ #}
+<div class="tabs">
+  <a href="/backpack?tab=materials" class="tab {{ 'active' if tab == 'materials' else '' }}">
+    <span class="tab-label">📦 Материалы</span>
+    <span class="tab-count {{ 'active' if tab == 'materials' else '' }}">{{ items|length }}</span>
+  </a>
+  <a href="/backpack?tab=tools" class="tab {{ 'active' if tab == 'tools' else '' }}">
+    <span class="tab-label">🔧 Инструменты</span>
+    <span class="tab-count {{ 'active' if tab == 'tools' else '' }}">{{ tools|length }}</span>
+  </a>
+</div>
+
+{# ============ МАТЕРИАЛЫ ============ #}
+{% if tab == 'materials' %}
+  <div class="card">
+    <div class="row" style="margin-bottom:12px;">
+      <a href="/backpack/return" class="btn">↩️ Вернуть на склад</a>
+      <a href="/backpack/usage" class="btn btn-primary">🔧 Израсходовал</a>
+    </div>
+
+    {% if not items %}
+      <div class="alert">Пусто. Всё, что вы взяли со склада, появится здесь.</div>
+    {% else %}
+    <div class="list">
+      {% for it in items %}
+      <div class="list-item-static">
+        <div>
+          <div class="list-item-title">{{ it.short_name or it.name }}</div>
+          {% if it.short_name %}<div class="list-item-sub">{{ it.name }}</div>{% endif %}
+          <div class="list-item-sub">
+            {% if it.article %}{{ it.article }}{% endif %}
+            {% if it.segment %} · {{ it.segment }}{% endif %}
+            {% if it.applicability %} · {{ it.applicability }}{% endif %}
+          </div>
+          <div class="list-item-sub">
+            Всего: <b>{{ it.raw_balance | int }} {{ it.unit }}</b>
+            {% if it.pending_out %} · в заявках: <span class="badge-warn">{{ it.pending_out | int }}</span>{% endif %}
+            · доступно: <b>{{ it.balance | int }} {{ it.unit }}</b>
+          </div>
+        </div>
+        <div class="row" style="flex-direction:column; align-items:stretch; gap:4px;">
+          <a href="/backpack/give?catalog_id={{ it.catalog_id }}" class="btn btn-sm">📦 Передать</a>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </div>
+{% endif %}
+
+{# ============ ИНСТРУМЕНТЫ ============ #}
+{% if tab == 'tools' %}
+  <div class="card">
+    {% if not tools %}
+      <div class="alert">Инструментов нет. Возьмите инструмент в разделе <a href="/tools">Инструменты</a>.</div>
+    {% else %}
+    <div class="list">
+      {% for t in tools %}
+      <div class="list-item-static">
+        <div>
+          <div class="list-item-title">{{ t.inventory_no }}</div>
+          <div class="list-item-sub">{{ t.name }}</div>
+          {% if t.serial_no %}<div class="list-item-sub muted">S/N: {{ t.serial_no }}</div>{% endif %}
+          <div class="list-item-sub">
+            Взят: {{ t.taken_at }}
+          </div>
+        </div>
+        <div class="row" style="flex-direction:column; align-items:stretch; gap:4px;">
+          <form method="post" action="/tools/{{ t.id }}/return" style="margin:0;">
+            <button class="btn btn-sm btn-primary">↩️ Вернуть</button>
+          </form>
+          <a href="/tools/{{ t.id }}/give" class="btn btn-sm">📦 Передать</a>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </div>
+{% endif %}
+
+{# ============ ИСХОДЯЩИЕ ПЕРЕДАЧИ МАТЕРИАЛОВ ============ #}
+{% if outgoing %}
+<div class="card">
+  <h2>📤 Мои исходящие передачи (материалы)</h2>
+  <div class="list">
+    {% for t in outgoing %}
+    <div class="list-item-static">
+      <div>
+        <div class="list-item-title">{{ t.short_name or t.name }}</div>
+        <div class="list-item-sub">
+          кому: <b>{{ t.to_name }}</b> · {{ t.quantity }} {{ t.unit }}
+          · {{ t.created_at }}
+        </div>
+        <div class="list-item-sub">
+          Статус:
+          {% if t.status == 'pending' %}⏳ Ждёт
+          {% elif t.status == 'accepted' %}✅ Принято
+          {% elif t.status == 'rejected' %}❌ Отклонено
+          {% elif t.status == 'cancelled' %}🚫 Отменено
+          {% else %}{{ t.status }}{% endif %}
+        </div>
+      </div>
+      <div>
+        {% if t.status == 'pending' %}
+        <form method="post" action="/transfers/{{ t.id }}/cancel" onsubmit="return confirm('Отменить?');" style="margin:0;">
+          <button class="btn btn-sm btn-danger">Отменить</button>
+        </form>
+        {% endif %}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+{% endblock %}
